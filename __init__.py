@@ -21,7 +21,6 @@ classes = (
     
     # Operators
     operators.OPEN_VIDEO_TRACKER_OT_select_video,
-    operators.OPEN_VIDEO_TRACKER_OT_run_pipeline,
     operators.OPEN_VIDEO_TRACKER_OT_run_pipeline_modal,
     
     # UI Panels

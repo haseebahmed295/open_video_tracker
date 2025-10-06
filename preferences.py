@@ -1,3 +1,4 @@
+import os
 import bpy
 from bpy.props import StringProperty, PointerProperty
 
@@ -7,21 +8,21 @@ class OpenVideoTrackerPreferences(bpy.types.AddonPreferences):
     colmap_path: StringProperty(
         name="COLMAP Path",
         description="Path to COLMAP executable",
-        default="colmap/colmap.exe",
+        default=os.path.join(os.path.dirname(__file__), "colmap","bin","colmap.exe"),
         subtype='FILE_PATH'
     )
     
     glomap_path: StringProperty(
         name="GLOMAP Path",
         description="Path to GLOMAP executable",
-        default="glomap/glomap.exe",
+        default=os.path.join(os.path.dirname(__file__), "glomap","bin","glomap.exe"),
         subtype='FILE_PATH'
     )
     
     ffmpeg_path: StringProperty(
         name="FFmpeg Path",
         description="Path to FFmpeg executable",
-        default="ffmpeg.exe",
+        default=os.path.join(os.path.dirname(__file__), "ffmpeg","bin","ffmpeg.exe"),
         subtype='FILE_PATH'
     )
 

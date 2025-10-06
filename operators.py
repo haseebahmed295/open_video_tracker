@@ -31,40 +31,33 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
     _timer = None
     _process = None
     _current_step = 0
-    _total_steps = 7  # Frame extraction, feature extraction, matching, reconstruction, 2x export, cleanup
+
+    is_active = False
+    _message = ""
+    
+    @property
+    def current_step(self):
+        # Access the current step from the thread
+        return self._current_step
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._current_step = 0
         self._process = None
+        self._prev = None
+        
+    def update_current_step(self, step):
+        # Thread-safe update of current step
+        self._current_step = step
         
     def modal(self, context, event):
-        if event.type == 'TIMER':            
-            # Process is running, check if it's done
-            if self._process is not None:
-                if self._process.poll() is not None:
-                    # Process finished
-                    if self._process.returncode != 0:
-                        # Try to get error output
-                        try:
-                            stdout, stderr = self._process.communicate(timeout=5)
-                            error_msg = stderr.decode('utf-8') if stderr else f"Process failed with return code {self._process.returncode}"
-                        except subprocess.TimeoutExpired:
-                            error_msg = f"Process failed with return code {self._process.returncode} (timeout reading output)"
-                        except Exception:
-                            error_msg = f"Process failed with return code {self._process.returncode}"
-                        
-                        self.report({'ERROR'}, f"Process failed: {error_msg}")
-                        self.cancel(context)
-                        return {'CANCELLED'}
-                    else:
-                        self._process = None
-                        self._current_step += 1
-                        self.processs(context)
+        if event.type == 'TIMER':
+            context.scene.open_video_tracker.progress = self.current_step
             
-            # Check if we're done
-            if self._current_step >= self._total_steps:
-                self.report({'INFO'}, "Pipeline execution completed successfully")
+            # Check if thread is still alive
+            if self._thread and not self._thread.is_alive():
+                # Thread has finished
+                self.report({'INFO'}, "Pipeline execution completed")
                 self.cancel(context)
                 return {'FINISHED'}
                 
@@ -75,21 +68,18 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
 
         blend_path = bpy.data.filepath
         if not blend_path:
-            self.report({'ERROR'}, "Blend file not found")
+            self.report({'ERROR'}, "Blend file is not saved")
             return {'CANCELLED'}
         self.blend_dir = os.path.dirname(blend_path)
-        
-        # Start timer
-        wm = context.window_manager
-        self._timer = wm.event_timer_add(0.5, window=context.window)
-        wm.modal_handler_add(self)
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal.is_active = True
         
         # Start first step
         self._thread = Thread(target=self.processs, args=(context,))
+        self._thread.daemon = True  # Dies when main thread dies
         self._thread.start()
 
         self.report({"INFO"} , "Processing... 😎")
-        self._timer = context.window_manager.event_timer_add(0.01, window=context.window)
+        self._timer = context.window_manager.event_timer_add(0.05, window=context.window)
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
         
@@ -134,109 +124,161 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
         database_path = os.path.join(working_dir, "database.db")
         model_dir = os.path.join(sparse_dir, "0")
         
-        try:
-            # Step 1: Frame extraction using FFmpeg
-            self.report({'INFO'}, "Step 1/7: Extracting frames...")
-            self._current_step = 1
-            cmd = [
-                prefs.ffmpeg_path,
-                "-loglevel", "error",
-                "-stats",
-                "-i", props.video_path,
-                "-qscale:v", str(props.quality),
-                os.path.join(images_dir, "frame_%06d.jpg")
-            ]
-            self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            
+        # Step 1: Frame extraction using FFmpeg
+        self.report({'INFO'}, "Step 1/7: Extracting frames...")
+        self.update_current_step(1)
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message = "Step 1/7: Extracting frames..."
+        print("Step 1/7: Extracting frames...")
+        cmd = [
+            prefs.ffmpeg_path,
+            "-loglevel", "error",
+            "-stats",
+            "-i", props.video_path,
+            "-qscale:v", str(props.quality),
+            os.path.join(images_dir, "frame_%06d.jpg")
+        ]
+        self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        self.print_logs(self._process)
+        if self._process.returncode != 0:
+            self.report({'ERROR'}, "Frame extraction failed")
+            return  # Early exit from the thread function
+    
+        # Step 2: COLMAP feature extraction
+        self.report({'INFO'}, "Step 2/7: Extracting features...")
+        self.update_current_step(2)
+        print("Step 2/7: Extracting features...")
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message = "Step 2/7: Extracting features..."
+        cmd = [
+            prefs.colmap_path,
+            "feature_extractor",
+            "--database_path", database_path,
+            "--image_path", images_dir,
+            "--ImageReader.single_camera", "1",
+            "--SiftExtraction.use_gpu", "1" if props.use_gpu else "0",
+            "--SiftExtraction.max_image_size", str(props.max_image_size)
+        ]
+        self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        self.print_logs(self._process)
+        if self._process.returncode != 0:
+            self.report({'ERROR'}, "Feature extraction failed")
+            return  # Early exit from the thread function
+
+    
+        # Step 3: COLMAP sequential matching
+        self.report({'INFO'}, "Step 3/7: Matching features...")
+        self.update_current_step(3)
+        print("Step 3/7: Matching features...")
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message = "Step 3/7: Matching features..."
+
+        cmd = [
+            prefs.colmap_path,
+            "sequential_matcher",
+            "--database_path", database_path,
+            "--SequentialMatching.overlap", str(props.overlap)
+        ]
+        self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        self.print_logs(self._process)
+        if self._process.returncode != 0:
+            self.report({'ERROR'}, "Feature matching failed")
+            return  # Early exit from the thread function
+
+    
+        # Step 4: GLOMAP sparse reconstruction
+        self.report({'INFO'}, "Step 4/7: Running sparse reconstruction...")
+        self.update_current_step(4)
+        print("Step 4/7: Running sparse reconstruction...")
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message = "Step 4/7: Running sparse reconstruction..."
+        cmd = [
+            prefs.glomap_path,
+            "mapper",
+            "--database_path", database_path,
+            "--image_path", images_dir,
+            "--output_path", sparse_dir
+        ]
+        self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        self.print_logs(self._process)
+        if self._process.returncode != 0:
+            self.report({'ERROR'}, "Sparse reconstruction failed")
+            return  # Early exit from the thread function
         
-            # Step 2: COLMAP feature extraction
-            self.report({'INFO'}, "Step 2/7: Extracting features...")
-            self._current_step = 2
+
+    
+        # Step 5: Export TXT inside the model folder
+        self.report({'INFO'}, "Step 5/7: Exporting model (internal)...")
+        self.update_current_step(5)
+        print("Step 5/7: Exporting model (internal)...")
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message = "Step 5/7: Exporting model (internal)..."
+        if os.path.exists(model_dir):
             cmd = [
                 prefs.colmap_path,
-                "feature_extractor",
-                "--database_path", database_path,
-                "--image_path", images_dir,
-                "--ImageReader.single_camera", "1",
-                "--SiftExtraction.use_gpu", "1" if props.use_gpu else "0",
-                "--SiftExtraction.max_image_size", str(props.max_image_size)
+                "model_converter",
+                "--input_path", model_dir,
+                "--output_path", model_dir,
+                "--output_type", "TXT"
             ]
-            self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            
+            self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+            self.print_logs(self._process)
+            if self._process.returncode != 0:
+                self.report({'ERROR'}, "Internal model export failed")
+                return  # Early exit from the thread function
+
+        else:
+            # Skip if model doesn't exist
+            self.update_current_step(self._current_step + 1)
+            self.report({'INFO'}, "Pipeline execution completed successfully")
         
-            # Step 3: COLMAP sequential matching
-            self.report({'INFO'}, "Step 3/7: Matching features...")
-            self._current_step = 3
+    
+        # Step 6: Export TXT to parent sparse directory
+        self.report({'INFO'}, "Step 6/7: Exporting model (external)...")
+        self.update_current_step(6)
+        print("Step 6/7: Exporting model (external)...")
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message = "Step 6/7: Exporting model (external)..."
+        if os.path.exists(model_dir):
             cmd = [
                 prefs.colmap_path,
-                "sequential_matcher",
-                "--database_path", database_path,
-                "--SequentialMatching.overlap", str(props.overlap)
+                "model_converter",
+                "--input_path", model_dir,
+                "--output_path", sparse_dir,
+                "--output_type", "TXT"
             ]
-            self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+            self.print_logs(self._process)
+            if self._process.returncode != 0:
+                self.report({'ERROR'}, "External model export failed")
+                return  # Early exit from the thread function
+        else:
+            # Skip if model doesn't exist
+            self.update_current_step(self._current_step + 1)
             
+    
+        # Step 7: Cleanup and finish
+        self.report({'INFO'}, "Step 7/7: Finalizing...")
+        # This step is just for progress tracking
+        self.update_current_step(7)
+        print("Step 7/7: Finalizing...")
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message = "Step 7/7: Finalizing..."
         
-            # Step 4: GLOMAP sparse reconstruction
-            self.report({'INFO'}, "Step 4/7: Running sparse reconstruction...")
-            self._current_step = 4
-            cmd = [
-                prefs.glomap_path,
-                "mapper",
-                "--database_path", database_path,
-                "--image_path", images_dir,
-                "--output_path", sparse_dir
-            ]
-            self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            
-        
-            # Step 5: Export TXT inside the model folder
-            self.report({'INFO'}, "Step 5/7: Exporting model (internal)...")
-            self._current_step = 5
-            if os.path.exists(model_dir):
-                cmd = [
-                    prefs.colmap_path,
-                    "model_converter",
-                    "--input_path", model_dir,
-                    "--output_path", model_dir,
-                    "--output_type", "TXT"
-                ]
-                self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            else:
-                # Skip if model doesn't exist
-                self._current_step += 1
-                self.processs(context)
+        # Pipeline completed successfully
+        self.report({'INFO'}, "Pipeline execution completed successfully")
                 
+    def print_logs(self, process):
+        # Print output in real-time as it's produced
+        for line in iter(process.stdout.readline, ""):
+            if line:
+                print(f"CMD: {line.rstrip()}")
+                # Also report to Blender UI
+        process.wait()
         
-            # Step 6: Export TXT to parent sparse directory
-            self.report({'INFO'}, "Step 6/7: Exporting model (external)...")
-            self._current_step = 6
-            if os.path.exists(model_dir):
-                cmd = [
-                    prefs.colmap_path,
-                    "model_converter",
-                    "--input_path", model_dir,
-                    "--output_path", sparse_dir,
-                    "--output_type", "TXT"
-                ]
-                self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            else:
-                # Skip if model doesn't exist
-                self._current_step += 1
-                self.processs(context)
-                
-        
-            # Step 7: Cleanup and finish
-            self.report({'INFO'}, "Step 7/7: Finalizing...")
-            # This step is just for progress tracking
-            self._current_step += 1
-                
-        except Exception as e:
-            self.report({'ERROR'}, f"Failed to execute step: {str(e)}")
-            self.cancel(context)
-            return {'CANCELLED'}
-            
+        # Check if process completed successfully
+        if process.returncode != 0:
+            self.report({'ERROR'}, f"Command failed with return code {process.returncode}")
+            # Note: We can't directly call self.cancel here because we're in a separate thread
+            # The calling function should check the return code and handle cancellation
+    
+
     def cancel(self, context):
         # Clean up timer
+        OPEN_VIDEO_TRACKER_OT_run_pipeline_modal.is_active = False
         wm = context.window_manager
         if self._timer:
             wm.event_timer_remove(self._timer)

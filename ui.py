@@ -23,7 +23,6 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
         row.operator("open_video_tracker.select_video", text="", icon='FILEBROWSER')
         
         # Frame Extraction Settings
-        box = layout.box()
         box.label(text="Frame Extraction", icon='IMAGE_DATA')
         row = box.row()
         row.prop(open_video_tracker, "frame_rate")
@@ -31,7 +30,6 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
         row.prop(open_video_tracker, "quality")
         
         # COLMAP Feature Extraction Settings
-        box = layout.box()
         box.label(text="COLMAP Feature Extraction", icon='POINTCLOUD_DATA')
         row = box.row()
         row.prop(open_video_tracker, "max_image_size")
@@ -39,19 +37,17 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
         row.prop(open_video_tracker, "use_gpu")
         
         # COLMAP Sequential Matching Settings
-        box = layout.box()
         box.label(text="COLMAP Sequential Matching", icon='CON_FOLLOWPATH')
         row = box.row()
         row.prop(open_video_tracker, "overlap")
-        
-        # GLOMAP Mapper Settings
-        box = layout.box()
-        box.label(text="GLOMAP Mapper", icon='MOD_MESHDEFORM')
-        # Placeholder for GLOMAP options
         
         # Execution Controls
         box = layout.box()
         box.label(text="Execution", icon='PLAY')
         row = box.row()
-        row.operator(OPEN_VIDEO_TRACKER_OT_run_pipeline_modal.bl_idname, text="Run Pipeline")
-        
+        if not OPEN_VIDEO_TRACKER_OT_run_pipeline_modal.is_active:
+            row.operator(OPEN_VIDEO_TRACKER_OT_run_pipeline_modal.bl_idname, text="Track Video")
+        else:
+            row.label(text="Progesss")
+            row = box.row()
+            row.progress(text=OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message, factor=open_video_tracker.progress/7)
