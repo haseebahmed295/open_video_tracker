@@ -25,9 +25,16 @@ class OpenVideoTrackerPreferences(bpy.types.AddonPreferences):
         default=os.path.join(os.path.dirname(__file__), "ffmpeg","bin","ffmpeg.exe"),
         subtype='FILE_PATH'
     )
+    ffprobe_path: StringProperty(
+        name="FFprobe Path",
+        description="Path to FFprobe executable",
+        default=os.path.join(os.path.dirname(__file__), "ffmpeg","bin","ffprobe.exe"),
+        subtype='FILE_PATH'
+    )
 
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "colmap_path")
         layout.prop(self, "glomap_path")
         layout.prop(self, "ffmpeg_path")
+        layout.prop(self, "ffprobe_path")

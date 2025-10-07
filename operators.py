@@ -5,22 +5,10 @@ from bpy.props import StringProperty, BoolProperty, IntProperty, FloatProperty
 import os
 import subprocess
 import shutil
+
+from .properties import OpenVideoTrackerProperties
 from .utils import get_addon_preferences, create_working_directory, get_video_name, validate_executable_path, validate_video_path
 
-class OPEN_VIDEO_TRACKER_OT_select_video(bpy.types.Operator, ImportHelper):
-    """Select a video file"""
-    bl_idname = "open_video_tracker.select_video"
-    bl_label = "Select Video"
-    
-    filter_glob: StringProperty(
-        default="*.mp4;*.avi;*.mov;*.mkv;*.wmv;*.flv;*.webm",
-        options={'HIDDEN'}
-    )
-    
-    def execute(self, context):
-        # Set the video path property
-        context.scene.open_video_tracker.video_path = self.filepath
-        return {'FINISHED'}
 
 
 class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
@@ -85,7 +73,7 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
         
     def processs(self, context):
         """Execute the next step in the pipeline"""
-        props = context.scene.open_video_tracker
+        props:OpenVideoTrackerProperties = context.scene.open_video_tracker
         prefs = get_addon_preferences()
         
         # Validate inputs
@@ -135,6 +123,7 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
             "-stats",
             "-i", props.video_path,
             "-qscale:v", str(props.quality),
+            "-r" , str(props.frame_rate),
             os.path.join(images_dir, "frame_%06d.jpg")
         ]
         self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)

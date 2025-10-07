@@ -9,6 +9,10 @@ bl_info = {
     "wiki_url": "",
     "category": "3D View"}
 
+if "bpy" in locals():
+    import importlib
+    importlib.reload(ui)
+
 import bpy
 from . import ui, operators, properties, preferences
 
@@ -20,7 +24,6 @@ classes = (
     properties.OpenVideoTrackerProperties,
     
     # Operators
-    operators.OPEN_VIDEO_TRACKER_OT_select_video,
     operators.OPEN_VIDEO_TRACKER_OT_run_pipeline_modal,
     
     # UI Panels
