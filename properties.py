@@ -82,11 +82,61 @@ class OpenVideoTrackerProperties(bpy.types.PropertyGroup):
         default=2000,
         min=100
     )
-    
+
     use_gpu: BoolProperty(
         name="Use GPU",
         description="Use GPU for feature extraction",
         default=True
+    )
+
+    camera_model: EnumProperty(
+        name="Camera Model",
+        description="Camera model for feature extraction",
+        items=[
+            ('SIMPLE_PINHOLE', "Simple Pinhole", "Simplest model: assumes a perfect pinhole camera (no distortion). Example: High-quality DSLR cameras with prime lenses", 1),
+            ('PINHOLE', "Pinhole", "Like SIMPLE_PINHOLE, but allows for more parameters. Example: Professional cinema cameras", 2),
+            ('SIMPLE_RADIAL', "Simple Radial", "Adds radial distortion (common in consumer cameras). Example: iPhone/Samsung smartphone cameras", 3),
+            ('SIMPLE_RADIAL_FISHEYE', "Simple Radial Fisheye", "For fisheye lenses with radial distortion. Example: GoPro Hero action cameras", 4),
+            ('RADIAL', "Radial", "More complex radial distortion model. Example: Mirrorless cameras with zoom lenses", 5),
+            ('RADIAL_FISHEYE', "Radial Fisheye", "For fisheye lenses with more complex distortion. Example: Insta360 or Ricoh Theta 360° cameras", 6),
+            ('OPENCV', "OpenCV", "Uses standard OpenCV distortion model (common in computer vision). Example: Webcam, security cameras", 7),
+            ('OPENCV_FISHEYE', "OpenCV Fisheye", "OpenCV's model for fisheye lenses. Example: Wide-angle security cameras", 8),
+            ('FULL_OPENCV', "Full OpenCV", "Full OpenCV model with all possible distortions. Example: Machine vision, robotics applications", 9),
+            ('FOV', "FOV", "For wide-angle lenses. Example: DJI drone cameras, wide-angle photography", 10),
+            ('THIN_PRISM_FISHEYE', "Thin Prism Fisheye", "For fisheye lenses with prism-like distortion. Example: Specialized scientific cameras", 11),
+            ('RAD_TAN_THIN_PRISM_FISHEYE', "Radial Tangential Thin Prism Fisheye", "Combines radial, tangential, and thin prism for fisheye lenses. Example: Advanced robotics, VR camera systems", 12),
+        ],
+        default='SIMPLE_PINHOLE',
+    )
+
+    # Advanced feature extraction settings
+    max_num_features: IntProperty(
+        name="Max Features",
+        description="Maximum number of features to extract per image",
+        default=8192,
+        min=100,
+        max=50000
+    )
+
+    # GLOMAP reconstruction settings
+    max_num_tracks: IntProperty(
+        name="Max Tracks",
+        description="Maximum number of tracks for GLOMAP reconstruction",
+        default=10000,
+        min=1000,
+        max=100000
+    )
+
+    constraint_type: EnumProperty(
+        name="Constraint Type",
+        description="Type of constraints for GLOMAP reconstruction",
+        items=[
+            ('ONLY_POINTS', "Points Only", "Use only point constraints for reconstruction", 1),
+            ('ONLY_CAMERAS', "Cameras Only", "Use only camera constraints for reconstruction", 2),
+            ('POINTS_AND_CAMERAS_BALANCED', "Balanced", "Balanced point and camera constraints", 3),
+            ('POINTS_AND_CAMERAS', "Points and Cameras", "Use both point and camera constraints", 4),
+        ],
+        default='POINTS_AND_CAMERAS_BALANCED',
     )
     
     # COLMAP sequential matching settings

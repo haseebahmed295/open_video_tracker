@@ -143,8 +143,10 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
             "--database_path", database_path,
             "--image_path", images_dir,
             "--ImageReader.single_camera", "1",
+            "--ImageReader.camera_model", props.camera_model,
             "--SiftExtraction.use_gpu", "1" if props.use_gpu else "0",
-            "--SiftExtraction.max_image_size", str(props.max_image_size)
+            "--SiftExtraction.max_image_size", str(props.max_image_size),
+            "--SiftExtraction.max_num_features", str(props.max_num_features)
         ]
         self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         self.print_logs(self._process)
@@ -182,7 +184,9 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
             "mapper",
             "--database_path", database_path,
             "--image_path", images_dir,
-            "--output_path", sparse_dir
+            "--output_path", sparse_dir,
+            "--TrackEstablishment.max_num_tracks", str(props.max_num_tracks),
+            "--constraint_type", props.constraint_type
         ]
         self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         self.print_logs(self._process)

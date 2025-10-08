@@ -56,19 +56,33 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
         row.prop(open_video_tracker, "frame_rate")
         row = box.row()
         row.prop(open_video_tracker, "quality")
-        
+        box = layout.box()
+
         # COLMAP Feature Extraction Settings
-        box.label(text="COLMAP Feature Extraction", icon='POINTCLOUD_DATA')
+        box.label(text="Feature Extraction", icon='POINTCLOUD_DATA')
         row = box.row()
         row.prop(open_video_tracker, "max_image_size")
         row = box.row()
         row.prop(open_video_tracker, "use_gpu")
+        row = box.row()
+        row.prop(open_video_tracker, "camera_model")
+        row = box.row()
+        row.prop(open_video_tracker, "max_num_features")
+        box = layout.box()
         
         # COLMAP Sequential Matching Settings
-        box.label(text="COLMAP Sequential Matching", icon='CON_FOLLOWPATH')
+        box.label(text="Sequential Matching", icon='CON_FOLLOWPATH')
         row = box.row()
         row.prop(open_video_tracker, "overlap")
-        
+
+        # GLOMAP Reconstruction Settings
+        box = layout.box()
+        box.label(text="Reconstruction", icon='MESH_CUBE')
+        row = box.row()
+        row.prop(open_video_tracker, "max_num_tracks")
+        row = box.row()
+        row.prop(open_video_tracker, "constraint_type")
+
         # Execution Controls
         box = layout.box()
         box.label(text="Execution", icon='PLAY')
