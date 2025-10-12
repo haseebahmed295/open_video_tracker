@@ -53,24 +53,25 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
         # Frame Extraction Settings
         box.label(text="Frame Extraction", icon='IMAGE_DATA')
         row = box.row()
-        row.prop(open_video_tracker, "frame_rate")
-        row = box.row()
         row.prop(open_video_tracker, "quality")
         box = layout.box()
 
         # COLMAP Feature Extraction Settings
         box.label(text="Feature Extraction", icon='POINTCLOUD_DATA')
-        row = box.row()
-        row.prop(open_video_tracker, "max_image_size")
-        row = box.row()
-        row.prop(open_video_tracker, "use_gpu")
-        row = box.row()
-        row.prop(open_video_tracker, "camera_model")
-        row = box.row()
-        row.prop(open_video_tracker, "max_num_features")
-        box = layout.box()
+        row = box.row(align=True)
+        col1 = row.column(align=True)
+        col2 = row.column(align=True)
+        col1.label(text="Max Image Size")
+        col1.label(text="Use GPU")
+        col1.label(text="Camera Model")
+        col1.label(text="Max Num Features")    
+        col2.prop(open_video_tracker, "max_image_size" , text="")
+        col2.prop(open_video_tracker, "use_gpu", text="")
+        col2.prop(open_video_tracker, "camera_model", text="")
+        col2.prop(open_video_tracker, "max_num_features", text="")
         
         # COLMAP Sequential Matching Settings
+        box = layout.box()
         box.label(text="Sequential Matching", icon='CON_FOLLOWPATH')
         row = box.row()
         row.prop(open_video_tracker, "overlap")
@@ -78,10 +79,28 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
         # GLOMAP Reconstruction Settings
         box = layout.box()
         box.label(text="Reconstruction", icon='MESH_CUBE')
-        row = box.row()
-        row.prop(open_video_tracker, "max_num_tracks")
-        row = box.row()
-        row.prop(open_video_tracker, "constraint_type")
+        row = box.row(align=True)
+        col1 = row.column(align=True)
+        col2 = row.column(align=True)
+        col1.label(text="Max Tracks")
+        col2.prop(open_video_tracker, "max_num_tracks" , text="")
+        col1.label(text="Constraint Type")
+        col2.prop(open_video_tracker, "constraint_type" , text="")
+        # Advanced GLOMAP Options
+        header,panel = box.panel("A" , default_closed =True)
+        header.label(text="Advanced Options", icon='PREFERENCES')
+        if panel:
+            row = panel.row(align=True)
+            col1 = row.column(align=True)
+            col2 = row.column(align=True)
+            col2.scale_x = 0.6
+
+            col1.label(text="Max Epipolar Error")
+            col2.prop(open_video_tracker, "max_epipolar_error" , text="")
+            col1.label(text="Max Global Positioning Iterations")
+            col2.prop(open_video_tracker, "max_global_positioning_iterations" , text="")
+            col1.label(text="Max Bundle Adjustment Iterations")
+            col2.prop(open_video_tracker, "max_bundle_adjustment_iterations" , text="")
 
         # Execution Controls
         box = layout.box()

@@ -15,7 +15,7 @@ if "bpy" in locals():
 
 import bpy
 from . import ui, operators, properties, preferences
-
+from .importer.importer import ImportColmapOperator
 classes = (
     # Preferences
     preferences.OpenVideoTrackerPreferences,
@@ -25,6 +25,7 @@ classes = (
     
     # Operators
     operators.OPEN_VIDEO_TRACKER_OT_run_pipeline_modal,
+    ImportColmapOperator,
     
     # UI Panels
     ui.OPEN_VIDEO_TRACKER_PT_panel,

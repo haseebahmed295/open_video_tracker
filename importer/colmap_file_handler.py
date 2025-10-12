@@ -1,0 +1,439 @@
+import os
+import re
+import numpy as np
+
+from .read_write_model import (
+    read_model,
+    write_model,
+    Camera as ColmapCamera,
+    Image as ColmapImage,
+    Point3D as ColmapPoint3D,
+)
+
+from .camera import Camera
+from .point import Point
+from .logger import log_info, log_warning, log_error, log_debug
+
+
+# From photogrammetry_importer\ext\read_write_model.py
+# CAMERA_MODELS = {
+#     CameraModel(model_id=0, model_name="SIMPLE_PINHOLE", num_params=3),
+#     CameraModel(model_id=1, model_name="PINHOLE", num_params=4),
+#     CameraModel(model_id=2, model_name="SIMPLE_RADIAL", num_params=4),
+#     CameraModel(model_id=3, model_name="RADIAL", num_params=5),
+#     CameraModel(model_id=4, model_name="OPENCV", num_params=8),
+#     CameraModel(model_id=5, model_name="OPENCV_FISHEYE", num_params=8),
+#     CameraModel(model_id=6, model_name="FULL_OPENCV", num_params=12),
+#     CameraModel(model_id=7, model_name="FOV", num_params=5),
+#     CameraModel(model_id=8, model_name="SIMPLE_RADIAL_FISHEYE", num_params=4),
+#     CameraModel(model_id=9, model_name="RADIAL_FISHEYE", num_params=5),
+#     CameraModel(model_id=10, model_name="THIN_PRISM_FISHEYE", num_params=12)
+# }
+
+# From https://github.com/colmap/colmap/blob/dev/src/base/camera_models.h
+#   SIMPLE_PINHOLE: f, cx, cy
+#   PINHOLE: fx, fy, cx, cy
+#   SIMPLE_RADIAL: f, cx, cy, k
+#   RADIAL: f, cx, cy, k1, k2
+#   OPENCV: fx, fy, cx, cy, k1, k2, p1, p2
+#   OPENCV_FISHEYE: fx, fy, cx, cy, k1, k2, k3, k4
+#   FULL_OPENCV: fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, k5, k6
+#   FOV: fx, fy, cx, cy, omega
+#   SIMPLE_RADIAL_FISHEYE: f, cx, cy, k
+#   RADIAL_FISHEYE: f, cx, cy, k1, k2
+#   THIN_PRISM_FISHEYE: fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, sx1, sy1
+
+
+def read_array(path):
+    with open(path, "rb") as fid:
+        width, height, channels = np.genfromtxt(fid, delimiter="&", max_rows=1,
+                                                usecols=(0, 1, 2), dtype=int)
+        fid.seek(0)
+        num_delimiter = 0
+        byte = fid.read(1)
+        while True:
+            if byte == b"&":
+                num_delimiter += 1
+                if num_delimiter >= 3:
+                    break
+            byte = fid.read(1)
+        array = np.fromfile(fid, np.float32)
+    array = array.reshape((width, height, channels), order="F")
+    return np.transpose(array, (1, 0, 2)).squeeze()
+
+def check_radial_distortion(radial_distortion, camera_name, op=None):
+    """Check if the radial distortion is compatible with Blender."""
+
+    # TODO: Integrate lens distortion nodes
+    # https://docs.blender.org/manual/en/latest/compositing/types/distort/lens_distortion.html
+    # to properly support radial distortion represented with a single parameter
+
+    if radial_distortion is None:
+        return
+    if np.array_equal(
+        np.asarray(radial_distortion), np.zeros_like(radial_distortion)
+    ):
+        return
+
+    output = "Blender does not support radial distortion of cameras in the"
+    output += f" 3D View. Distortion of camera {camera_name}:"
+    output += " {radial_distortion}. If possible, re-compute the "
+    output += "reconstruction using a camera model without radial distortion"
+    output += ' parameters.  Use "Suppress Distortion Warnings" in the'
+    output += " import settings to suppress this message."
+    log_warning(output, op)
+
+
+
+class ColmapFileHandler:
+    """Class to read and write :code:`Colmap` models and workspaces."""
+
+    @staticmethod
+    def _parse_camera_param_list(cam):
+        name = cam.model
+        params = cam.params
+        fx, fy, cx, cy, skew, r = None, None, None, None, None, None
+        if name == "SIMPLE_PINHOLE":
+            fx, cx, cy = params
+        elif name == "PINHOLE":
+            fx, fy, cx, cy = params
+        elif name == "SIMPLE_RADIAL":
+            fx, cx, cy, r = params
+        elif name == "RADIAL":
+            fx, cx, cy, k1, k2 = params
+            r = [k1, k2]
+        elif name == "OPENCV":
+            fx, fy, cx, cy, k1, k2, p1, p2 = params
+            r = [k1, k2, p1, p2]
+        elif name == "OPENCV_FISHEYE":
+            fx, fy, cx, cy, k1, k2, k3, k4 = params
+            r = [k1, k2, k3, k4]
+        elif name == "FULL_OPENCV":
+            fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, k5, k6 = params
+            r = [k1, k2, p1, p2, k3, k4, k5, k6]
+        elif name == "FOV":
+            fx, fy, cx, cy, r = params
+        elif name == "SIMPLE_RADIAL_FISHEYE":
+            fx, cx, cy, r = params
+        elif name == "RADIAL_FISHEYE":
+            fx, cx, cy, k1, k2 = params
+            r = [k1, k2]
+        elif name == "THIN_PRISM_FISHEYE":
+            fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, sx1, sy1 = params
+            r = [k1, k2, p1, p2, k3, k4, sx1, sy1]
+        # PERSPECTIVE is defined in this Colmap fork
+        #  https://github.com/Kai-46/VisSatSatelliteStereo
+        elif name == "PERSPECTIVE":
+            fx, fy, cx, cy, skew = params
+        if fy is None:
+            fy = fx
+        if skew is None:
+            skew = 0.0
+        return fx, fy, cx, cy, skew, r
+
+    @staticmethod
+    def _convert_cameras(
+        id_to_col_cameras,
+        id_to_col_images,
+        image_dp,
+        image_fp_type,
+        depth_map_idp=None,
+        suppress_distortion_warnings=False,
+        op=None,
+    ):
+        # From photogrammetry_importer\ext\read_write_model.py
+        #   CameraModel = collections.namedtuple(
+        #       "CameraModel", ["model_id", "model_name", "num_params"])
+        #   Camera = collections.namedtuple(
+        #       "Camera", ["id", "model", "width", "height", "params"])
+        #   BaseImage = collections.namedtuple(
+        #       "Image", ["id", "qvec", "tvec", "camera_id", "name", "xys", "point3D_ids"])
+
+        cameras = []
+        for col_image in id_to_col_images.values():
+            current_camera = Camera()
+            current_camera.id = col_image.id
+            current_camera.set_rotation_with_quaternion(col_image.qvec)
+            current_camera.set_camera_translation_vector_after_rotation(
+                col_image.tvec
+            )
+
+            current_camera.image_fp_type = image_fp_type
+            current_camera.image_dp = image_dp
+            current_camera._relative_fp = col_image.name
+
+            # print('INFO', 'image_dp: ' + str(image_dp))
+            # print('INFO', 'col_image.name: ' + str(col_image.name))
+
+            camera_model = id_to_col_cameras[col_image.camera_id]
+
+            # print('INFO', 'image_id: ' + str(col_image.id))
+            # print('INFO', 'camera_id: ' + str(col_image.camera_id))
+            # print('INFO', 'camera_model: ' + str(camera_model))
+
+            current_camera.width = camera_model.width
+            current_camera.height = camera_model.height
+
+            (
+                fx,
+                fy,
+                cx,
+                cy,
+                skew,
+                r,
+            ) = ColmapFileHandler._parse_camera_param_list(
+                camera_model,
+            )
+            if not suppress_distortion_warnings:
+                check_radial_distortion(r, current_camera._relative_fp, op)
+
+            camera_calibration_matrix = np.array(
+                [[fx, skew, cx], [0, fy, cy], [0, 0, 1]]
+            )
+            current_camera.set_calibration(
+                camera_calibration_matrix, radial_distortion=0
+            )
+
+            if depth_map_idp is not None:
+                geometric_ifp = os.path.join(
+                    depth_map_idp, col_image.name + ".geometric.bin"
+                )
+                photometric_ifp = os.path.join(
+                    depth_map_idp, col_image.name + ".photometric.bin"
+                )
+                if os.path.isfile(geometric_ifp):
+                    depth_map_ifp = geometric_ifp
+                elif os.path.isfile(photometric_ifp):
+                    depth_map_ifp = photometric_ifp
+                else:
+                    depth_map_ifp = None
+                current_camera.set_depth_map_callback(
+                    read_array,
+                    depth_map_ifp,
+                    Camera.DEPTH_MAP_WRT_CANONICAL_VECTORS,
+                    shift_depth_map_to_pixel_center=False,
+                )
+            cameras.append(current_camera)
+        return cameras
+
+    @staticmethod
+    def _convert_points(id_to_col_points3D):
+        # From photogrammetry_importer\ext\read_write_model.py
+        #   Point3D = collections.namedtuple(
+        #       "Point3D", ["id", "xyz", "rgb", "error", "image_ids", "point2D_idxs"])
+
+        col_points3D = id_to_col_points3D.values()
+        points3D = []
+        for col_point3D in col_points3D:
+            current_point = Point(
+                coord=col_point3D.xyz,
+                color=col_point3D.rgb,
+                id=col_point3D.id,
+                scalars=None,
+            )
+            points3D.append(current_point)
+
+        return points3D
+
+    @staticmethod
+    def _get_model_folder_ext(idp):
+        ifp_s = os.listdir(idp)
+        txt_list = ["cameras.txt", "images.txt", "points3D.txt"]
+        bin_list = ["cameras.bin", "images.bin", "points3D.bin"]
+        if len(set(ifp_s).intersection(txt_list)) == 3:
+            ext = ".txt"
+        elif len(set(ifp_s).intersection(bin_list)) == 3:
+            ext = ".bin"
+        else:
+            ext = None
+        return ext
+
+    @staticmethod
+    def _is_valid_model_folder(idp):
+        ext = ColmapFileHandler._get_model_folder_ext(idp)
+        return ext is not None
+
+    @staticmethod
+    def _is_valid_workspace_folder(idp):
+        elements = os.listdir(idp)
+        valid = True
+        if "sparse" in elements:
+            valid = ColmapFileHandler._is_valid_model_folder(
+                os.path.join(idp, "sparse")
+            )
+        else:
+            valid = False
+        return valid
+
+    @staticmethod
+    def parse_colmap_model_folder(
+        model_idp,
+        image_dp,
+        image_fp_type,
+        depth_map_idp=None,
+        suppress_distortion_warnings=False,
+        op=None,
+    ):
+        """Parse a :code:`Colmap` model."""
+        log_info("Parse Colmap model folder: " + model_idp, op)
+
+        assert ColmapFileHandler._is_valid_model_folder(model_idp)
+        ext = ColmapFileHandler._get_model_folder_ext(model_idp)
+
+        # cameras represent information about the camera model
+        # images contain pose information
+        id_to_col_cameras, id_to_col_images, id_to_col_points3D = read_model(
+            model_idp, ext=ext
+        )
+
+        cameras = ColmapFileHandler._convert_cameras(
+            id_to_col_cameras,
+            id_to_col_images,
+            image_dp,
+            image_fp_type,
+            depth_map_idp,
+            suppress_distortion_warnings,
+            op,
+        )
+
+        points3D = ColmapFileHandler._convert_points(id_to_col_points3D)
+
+        return cameras, points3D
+
+    @staticmethod
+    def _disassemble_colmap_workspace_folder(workspace_idp):
+        """Parse a :code:`Colmap` workspace."""
+        assert ColmapFileHandler._is_valid_workspace_folder(workspace_idp)
+
+        model_idp = os.path.join(workspace_idp, "sparse")
+        image_idp = os.path.join(workspace_idp, "images")
+        depth_map_idp = os.path.join(workspace_idp, "stereo", "depth_maps")
+        poisson_mesh_ifp = os.path.join(workspace_idp, "meshed-poisson.ply")
+        delaunay_mesh_ifp = os.path.join(workspace_idp, "meshed-delaunay.ply")
+        if os.path.isfile(poisson_mesh_ifp):
+            mesh_ifp = poisson_mesh_ifp
+        elif os.path.isfile(delaunay_mesh_ifp):
+            mesh_ifp = delaunay_mesh_ifp
+        else:
+            mesh_ifp = None
+
+        return model_idp, image_idp, depth_map_idp, mesh_ifp
+
+    @staticmethod
+    def parse_colmap_folder(
+        idp,
+        use_workspace_images,
+        image_dp,
+        image_fp_type,
+        suppress_distortion_warnings=False,
+        op=None,
+    ):
+        """Parse a :code:`Colmap` model or a :code:`Colmap` workspace."""
+        log_info("idp: " + str(idp), op)
+
+        if ColmapFileHandler._is_valid_model_folder(idp):
+            model_idp = idp
+            mesh_ifp = None
+            depth_map_idp = None
+        elif ColmapFileHandler._is_valid_workspace_folder(idp):
+            (
+                model_idp,
+                image_idp_workspace,
+                depth_map_idp,
+                mesh_ifp,
+            ) = ColmapFileHandler._disassemble_colmap_workspace_folder(idp)
+            if use_workspace_images and os.path.isdir(image_idp_workspace):
+                image_dp = image_idp_workspace
+                log_info("Using image directory in workspace.", op)
+        else:
+            log_error("Invalid colmap model / workspace", op)
+            assert False, "Invalid colmap model / workspace"
+
+        log_info("image_dp: " + image_dp, op)
+        cameras, points = ColmapFileHandler.parse_colmap_model_folder(
+            model_idp,
+            image_dp,
+            image_fp_type,
+            depth_map_idp,
+            suppress_distortion_warnings=suppress_distortion_warnings,
+            op=op,
+        )
+
+        return cameras, points, mesh_ifp
+
+    @staticmethod
+    def write_colmap_model(odp, cameras, points, camera_model="SIMPLE_PINHOLE", op=None):
+        """Write cameras and points as :code:`Colmap` model."""
+        log_info("Write Colmap model folder: " + odp, op)
+
+        assert camera_model in [
+            "SIMPLE_PINHOLE",
+            "PINHOLE",
+        ], f"Unsupported camera model: {camera_model}"
+
+        if not os.path.isdir(odp):
+            os.mkdir(odp)
+
+        # From photogrammetry_importer\ext\read_write_model.py
+        #   CameraModel = collections.namedtuple(
+        #       "CameraModel", ["model_id", "model_name", "num_params"])
+        #   Camera = collections.namedtuple(
+        #       "Camera", ["id", "model", "width", "height", "params"])
+        #   BaseImage = collections.namedtuple(
+        #       "Image", ["id", "qvec", "tvec", "camera_id", "name", "xys", "point3D_ids"])
+        #   Point3D = collections.namedtuple(
+        #       "Point3D", ["id", "xyz", "rgb", "error", "image_ids", "point2D_idxs"])
+
+        colmap_cams = {}
+        colmap_images = {}
+        for cam in cameras:
+            pp = cam.get_principal_point()
+            if camera_model == "SIMPLE_PINHOLE":
+                camera_param_list = np.array([cam.get_focal_length(), pp[0], pp[1]])
+            elif camera_model == "PINHOLE":
+                calibration_mat = cam.get_calibration_mat()
+                fx = calibration_mat[0][0]
+                fy = calibration_mat[1][1]
+                camera_param_list = np.array([fx, fy, pp[0], pp[1]])
+            
+            colmap_cam = ColmapCamera(
+                id=cam.id,
+                model=camera_model,
+                width=cam.width,
+                height=cam.height,
+                params=camera_param_list,
+            )
+            colmap_cams[cam.id] = colmap_cam
+            
+            image_filename = cam.get_file_name()
+            if (re.findall(r"\.\d\d\d$", image_filename)):
+                image_filename = image_filename[:-4]
+                
+            colmap_image = ColmapImage(
+                id=cam.id,
+                qvec=cam.get_rotation_as_quaternion(),
+                tvec=cam.get_translation_vec(),
+                camera_id=cam.id,
+                name=image_filename,
+                xys=[],
+                point3D_ids=[],
+            )
+            colmap_images[cam.id] = colmap_image
+
+        colmap_points3D = {}
+        for point in points:
+            colmap_point = ColmapPoint3D(
+                id=point.id,
+                xyz=point.coord,
+                rgb=point.color,
+                error=0,
+                # The default settings in Colmap show only points with more than
+                # 3 observations
+                image_ids=[0, 1, 2],
+                point2D_idxs=[0, 1, 2],
+            )
+            colmap_points3D[point.id] = colmap_point
+
+        write_model(
+            colmap_cams, colmap_images, colmap_points3D, odp, ext=".txt"
+        )

@@ -123,7 +123,6 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
             "-stats",
             "-i", props.video_path,
             "-qscale:v", str(props.quality),
-            "-r" , str(props.frame_rate),
             os.path.join(images_dir, "frame_%06d.jpg")
         ]
         self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
@@ -185,16 +184,19 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
             "--database_path", database_path,
             "--image_path", images_dir,
             "--output_path", sparse_dir,
-            "--TrackEstablishment.max_num_tracks", str(props.max_num_tracks),
-            "--constraint_type", props.constraint_type
+            "--TrackEstablishment.max_num_tracks", str(props.max_num_tracks*len(os.listdir(images_dir))),
+            "--constraint_type", props.constraint_type,
+            "--RelPoseEstimation.max_epipolar_error", str(props.max_epipolar_error),
+            "--GlobalPositioning.max_num_iterations", str(props.max_global_positioning_iterations),
+            "--BundleAdjustment.max_num_iterations", str(props.max_bundle_adjustment_iterations),
+            "--GlobalPositioning.use_gpu", "1" if props.use_gpu else "0",
+            "--BundleAdjustment.use_gpu", "1" if props.use_gpu else "0"
         ]
         self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         self.print_logs(self._process)
         if self._process.returncode != 0:
             self.report({'ERROR'}, "Sparse reconstruction failed")
             return  # Early exit from the thread function
-        
-
     
         # Step 5: Export TXT inside the model folder
         self.report({'INFO'}, "Step 5/7: Exporting model (internal)...")
@@ -258,16 +260,9 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
         # Print output in real-time as it's produced
         for line in iter(process.stdout.readline, ""):
             if line:
-                print(f"CMD: {line.rstrip()}")
+                print(f"~ {line.rstrip()}")
                 # Also report to Blender UI
         process.wait()
-        
-        # Check if process completed successfully
-        if process.returncode != 0:
-            self.report({'ERROR'}, f"Command failed with return code {process.returncode}")
-            # Note: We can't directly call self.cancel here because we're in a separate thread
-            # The calling function should check the return code and handle cancellation
-    
 
     def cancel(self, context):
         # Clean up timer

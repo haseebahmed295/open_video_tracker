@@ -2,6 +2,7 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, IntProperty, FloatProperty, EnumProperty
 import os
 
+
 def update_video_path(self, context):
     """Update function called when video_path property changes"""
     if not self.video_path:
@@ -52,15 +53,7 @@ class OpenVideoTrackerProperties(bpy.types.PropertyGroup):
         update=update_video_path
     )
     
-    # Frame extraction settings
-    frame_rate: IntProperty(
-        name="Frame Rate",
-        description="Frames per second to extract",
-        default=30,
-        min=1,
-        max=120
-    )
-    
+
     quality: EnumProperty(
         name="Quality",
         description="Quality preset for frame extraction",
@@ -106,7 +99,7 @@ class OpenVideoTrackerProperties(bpy.types.PropertyGroup):
             ('THIN_PRISM_FISHEYE', "Thin Prism Fisheye", "For fisheye lenses with prism-like distortion. Example: Specialized scientific cameras", 11),
             ('RAD_TAN_THIN_PRISM_FISHEYE', "Radial Tangential Thin Prism Fisheye", "Combines radial, tangential, and thin prism for fisheye lenses. Example: Advanced robotics, VR camera systems", 12),
         ],
-        default='SIMPLE_PINHOLE',
+        default='SIMPLE_RADIAL',
     )
 
     # Advanced feature extraction settings
@@ -121,9 +114,10 @@ class OpenVideoTrackerProperties(bpy.types.PropertyGroup):
     # GLOMAP reconstruction settings
     max_num_tracks: IntProperty(
         name="Max Tracks",
-        description="Maximum number of tracks for GLOMAP reconstruction",
-        default=10000,
-        min=1000,
+        description="""Maximum number of tracks per image.
+Typically, one image should not need more than 1000 tracks to achieve good performance.""",
+        default=1000,
+        min=100,
         max=100000
     )
 
@@ -138,6 +132,32 @@ class OpenVideoTrackerProperties(bpy.types.PropertyGroup):
         ],
         default='POINTS_AND_CAMERAS_BALANCED',
     )
+    
+    # Additional GLOMAP options
+    max_epipolar_error: IntProperty(
+        name="Max Epipolar Error",
+        description="Maximum epipolar error for relative pose estimation. Increase for high-resolution or blurry images (e.g., 4 or 10)",
+        default=1,
+        min=1,
+        max=20
+    )
+
+    max_global_positioning_iterations: IntProperty(
+        name="Max Global Positioning Iterations",
+        description="Maximum number of iterations for global positioning",
+        default=100,
+        min=1,
+        max=1000
+    )
+    
+    max_bundle_adjustment_iterations: IntProperty(
+        name="Max Bundle Adjustment Iterations",
+        description="Maximum number of iterations for bundle adjustment",
+        default=200,
+        min=1,
+        max=1000
+    )
+    
     
     # COLMAP sequential matching settings
     overlap: IntProperty(
