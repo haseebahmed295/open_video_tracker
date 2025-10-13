@@ -1,118 +1,284 @@
-# Open Video Tracker
+# Open Video Tracker User Guide
 
-A Blender addon for automated video tracking using COLMAP and GLOMAP photogrammetry tools.
+## Table of Contents
 
-## Overview
+- [Introduction](#introduction)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Initial Setup](#initial-setup)
+- [User Interface Overview](#user-interface-overview)
+- [Workflow](#workflow)
+- [Configuration Options](#configuration-options)
+- [Running the Pipeline](#running-the-pipeline)
+- [Importing Results](#importing-results)
+- [Post-Processing](#post-processing)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
 
-Open Video Tracker is a Blender addon that automates the process of converting video footage into 3D point clouds and camera tracks. It integrates industry-standard photogrammetry tools (FFmpeg, COLMAP, and GLOMAP) into Blender's interface, allowing users to easily process videos for visual effects, motion tracking, and 3D reconstruction workflows.
+## Introduction
 
-## Features
+Open Video Tracker is a Blender addon that automates the process of converting video footage into 3D point clouds and camera tracks using photogrammetry techniques. The addon integrates FFmpeg, COLMAP, and GLOMAP to provide a streamlined workflow for video tracking and 3D reconstruction.
 
-- **Integrated UI**: Access all functionality directly within Blender's 3D Viewport
-- **Configurable Parameters**: Adjust frame extraction quality, feature detection settings, and matching parameters
-- **Automated Pipeline**: One-click execution of the complete photogrammetry workflow
-- **Progress Tracking**: Real-time progress updates during processing
-- **Error Handling**: Comprehensive error reporting and graceful failure handling
-- **Blender-Compatible Output**: Generates TXT files that can be directly imported into Blender
+## Installation
 
-## Documentation
+### Step 1: Download the Addon
 
-For detailed information on using and troubleshooting the addon, please refer to the following documentation:
+1. Download or clone the Open Video Tracker repository
+2. Locate the `open_video_tracker` folder containing the addon files
 
-- [User Guide](USER_GUIDE.md) - Complete instructions for installation, configuration, and usage
-- [Testing Procedure](TESTING_PROCEDURE.md) - Guidelines for testing the addon functionality
-- [Troubleshooting Guide](TROUBLESHOOTING.md) - Solutions for common issues and problems
+### Step 2: Install in Blender
 
-## Quick Start
+1. Open Blender
+2. Go to **Edit → Preferences**
+3. Select the **Add-ons** tab
+4. Click **Install...**
+5. Navigate to and select the `open_video_tracker` folder
+6. Click **Install Add-on**
 
-### Requirements
+### Step 3: Enable the Addon
 
-- Blender 2.93 or later
-- FFmpeg executable
-- COLMAP executable
-- GLOMAP executable
+1. In the Add-ons list, find **"Open Video Tracker"**
+2. Check the checkbox to enable the addon
+3. The addon should now appear in the 3D Viewport sidebar under "Open Video Tracker"
 
-### Installation
+### Step 4: Verify Installation
 
-1. Download or clone this repository
-2. In Blender, go to Edit → Preferences → Add-ons
-3. Click "Install..." and select the `open_video_tracker` folder
-4. Enable the addon by checking the checkbox
+1. Switch to the 3D Viewport
+2. Look for the "Open Video Tracker" tab in the right sidebar
+3. If visible, the installation was successful
 
-### Setup
 
-Before using the addon, you need to configure the paths to the required executables:
+## User Interface Overview
 
-1. Go to Edit → Preferences → Add-ons
-2. Find "Open Video Tracker" in the list
-3. Click the arrow to expand the preferences
-4. Set the paths to your FFmpeg, COLMAP, and GLOMAP executables
+### Main Panel
 
-### Usage
+The main interface is located in the 3D Viewport sidebar under the "Open Video Tracker" tab.
 
-1. Open the 3D Viewport and switch to the "Open Video Tracker" tab
-2. Click the folder icon to select a video file
-3. Adjust the processing parameters as needed:
-   - **Frame Rate**: Frames per second to extract from the video
-   - **Quality**: Quality factor for frame extraction (1=highest, 31=lowest)
-   - **Max Image Size**: Maximum dimension for feature extraction
-   - **Use GPU**: Enable GPU acceleration for feature extraction
-   - **Overlap**: Number of overlapping frames for sequential matching
-4. Click "Run Pipeline" to start processing
-5. Monitor progress in the progress bar
-6. Once complete, the results will be saved in a structured directory relative to your .blend file
+#### Video Selection Section
+- **Video Path**: File browser to select input video file
+- **Video Information**: Displays frame rate, resolution, and bitrate (populated automatically)
 
-## Output Structure
+#### Frame Extraction Settings
+- **Quality**: Preset quality levels for frame extraction (Native, High, Balanced, Low, Lowest)
 
-The addon creates the following directory structure relative to your .blend file:
+#### Feature Extraction Settings
+- **Max Image Size**: Maximum dimension for feature extraction (default: 2000px)
+- **Use GPU**: Enable GPU acceleration for feature extraction
+- **Camera Model**: Camera distortion model (Simple Radial recommended for most cases)
+- **Max Num Features**: Maximum features to extract per image (default: 8192)
+
+#### Sequential Matching Settings
+- **Overlap**: Number of overlapping frames for sequential matching (default: 10)
+
+#### Reconstruction Settings
+- **Max Tracks**: Maximum tracks per image (default: 1000)
+- **Constraint Type**: Balance between point and camera constraints
+- **Advanced Options**: Additional GLOMAP parameters (epipolar error, iterations)
+
+#### Execution Controls
+- **Track Video**: Button to start the processing pipeline
+- **Progress**: Real-time progress indicator during processing
+
+### Import Options Panel
+
+Located in the collapsible "Import Options" panel:
+
+#### Camera Import Settings
+- **Import Cameras**: Enable camera track import
+- **Camera Extent**: Size of camera visualization
+- **Add Background Images**: Include original frames as background
+- **Add Image Planes**: Create image plane objects
+- **Animation Options**: Camera motion animation settings
+
+#### Point Import Settings
+- **Import Points**: Enable point cloud import
+- **Point Cloud Display**: Sparsity and rendering options
+- **GPU Rendering**: Hardware-accelerated point display
+- **Mesh Options**: Convert points to mesh objects
+
+## Workflow
+
+### Step 1: Prepare Your Video
+
+1. Ensure your video file is in a supported format (MP4, AVI, MOV, MKV, WMV, FLV, WebM)
+2. For best results:
+   - Use high-quality, stable footage
+   - Avoid excessive camera movement or shaky footage
+   - Ensure good lighting and contrast
+   - Keep video length reasonable (start with short clips for testing)
+
+### Step 2: Configure Processing Settings
+
+1. **Video Quality**: Choose based on your needs and hardware
+   - Native/High: Best quality, largest files, slowest processing
+   - Balanced: Good quality/performance balance
+   - Low/Lowest: Fast processing, smaller files
+
+2. **Feature Extraction**:
+   - Increase Max Image Size for high-resolution videos
+   - Enable GPU if available for faster processing
+   - Choose appropriate camera model based on your camera type
+
+3. **Reconstruction**:
+   - Adjust Max Tracks based on scene complexity
+   - Use Balanced constraint type for most scenarios
+
+### Step 3: Run the Pipeline
+
+1. Click **"Track Video"** to start processing
+2. Monitor progress in the progress bar
+3. Processing time varies based on video length and settings
+4. Do not close Blender during processing
+
+### Step 4: Import Results
+
+After processing completes, the results are automatically imported. The addon creates:
+
+- Camera objects with animation data
+- Point cloud data
+- Background images (if enabled)
+
+## Configuration Options
+
+### Frame Extraction Quality
+
+| Quality | QScale | Use Case |
+|---------|--------|----------|
+| Native | 1 | Highest quality, archival |
+| High | 2 | High quality production |
+| Balanced | 4 | General purpose |
+| Low | 8 | Fast preview, testing |
+| Lowest | 16 | Very fast, low quality |
+
+### Camera Models
+
+Choose the appropriate camera model based on your camera type:
+
+- **Simple Radial**: Most consumer cameras (smartphones, DSLRs)
+- **Simple Radial Fisheye**: Action cameras (GoPro)
+- **OpenCV**: Computer vision cameras
+- **Full OpenCV**: Complex distortion scenarios
+
+### Constraint Types
+
+- **Points Only**: Use when camera positions are unreliable
+- **Cameras Only**: Use when point features are sparse
+- **Balanced**: Recommended for most scenarios
+- **Points and Cameras**: Maximum constraints, slower processing
+
+## Running the Pipeline
+
+### Processing Steps
+
+The pipeline consists of 7 main steps:
+
+1. **Frame Extraction**: FFmpeg extracts frames from video
+2. **Feature Extraction**: COLMAP detects feature points
+3. **Feature Matching**: COLMAP matches features across frames
+4. **Sparse Reconstruction**: GLOMAP creates 3D point cloud
+5. **Model Export**: Export camera and point data
+6. **Finalization**: Cleanup and preparation for import
+
+### Monitoring Progress
+
+- Progress is shown as a percentage (0-100%)
+- Each step is logged to the Blender console
+- Processing can be monitored via **Window → Toggle System Console**
+
+### Expected Output
+
+The addon creates a directory structure:
 
 ```
-{blend_file_directory}/video_tracking/{video_name}/
-├── images/
-│   ├── frame_000001.jpg
-│   ├── frame_000002.jpg
-│   └── ...
-├── sparse/
-│   ├── cameras.txt
-│   ├── images.txt
-│   ├── points3D.txt
-│   └── 0/
-│       ├── cameras.txt
-│       ├── images.txt
-│       └── points3D.txt
-└── database.db
+{your_blend_file_directory}/
+└── video_tracking/
+    └── {video_name}/
+        ├── images/          # Extracted frames
+        ├── sparse/          # Reconstruction data
+        │   ├── 0/          # Model files
+        │   └── cameras.txt # Camera data
+        │   └── images.txt  # Image data
+        │   └── points3D.txt # Point cloud data
+        └── database.db     # COLMAP database
 ```
 
-## Importing Results into Blender
+## Importing Results
 
-After processing is complete, you can import the results into Blender:
+### Automatic Import
 
-1. Go to File → Import → COLMAP Model
+The addon automatically imports results when processing completes. However, you can also manually import using Blender's built-in COLMAP importer:
+
+1. Go to **File → Import → COLMAP Model**
 2. Navigate to the `sparse/0/` directory
-3. Select the `cameras.txt`, `images.txt`, and `points3D.txt` files
-4. Adjust import settings as needed
-5. Click "Import COLMAP Model"
+3. Select the TXT files
+4. Configure import options
+5. Click **Import COLMAP Model**
 
-## Troubleshooting
+### Import Options
 
-### Common Issues
+#### Camera Import
+- **Camera Extent**: Visual size of camera objects
+- **Background Images**: Show original frames
+- **Image Planes**: Create textured planes
+- **Animation**: Convert camera motion to keyframes
 
-1. **"Process failed" errors**: Check that all executable paths are correctly configured in the addon preferences
-2. **Missing DLL errors**: Ensure all required dependencies for COLMAP and GLOMAP are installed
-3. **Permission errors**: Make sure Blender has permission to write to the output directory
-4. **Out of memory errors**: Reduce the "Max Image Size" parameter or process shorter videos
+#### Point Cloud Import
+- **Display Sparsity**: Reduce point density for performance
+- **GPU Rendering**: Hardware-accelerated display
+- **Mesh Conversion**: Convert points to mesh objects
 
-### Getting Help
+## Post-Processing
 
-If you encounter issues not covered here, please check the Blender console for detailed error messages. You can access the console through Window → Toggle System Console.
+### Camera Track Refinement
 
-For more detailed troubleshooting, refer to our [Troubleshooting Guide](TROUBLESHOOTING.md).
+1. Select camera objects in the scene
+2. Use Blender's animation tools to adjust camera motion
+3. Apply smoothing or stabilization if needed
+4. Fine-tune camera positions for specific shots
 
-## License
+### Point Cloud Processing
 
-This addon is released under the MIT License. See the LICENSE file for details.
+1. Use Blender's mesh editing tools on point cloud data
+2. Apply decimation to reduce point count
+3. Clean up noise or outliers
+4. Convert to mesh for further modeling
 
-## Credits
+### Integration with VFX Pipeline
 
-Developed by the Open Video Tracker Team.
-Inspired by the workflow_glopmap.bat script by polyfjord.
+1. Export camera data for use in other software
+2. Use point cloud as reference for modeling
+3. Create motion paths for character animation
+4. Generate depth maps from point cloud data
+
+## Best Practices
+
+### Video Preparation
+
+- **Resolution**: Higher resolution provides better tracking but increases processing time
+- **Frame Rate**: 24-30 fps is optimal; higher rates may not improve tracking significantly
+- **Stabilization**: Use stabilized footage when possible
+- **Lighting**: Ensure consistent, even lighting
+- **Motion**: Smooth camera movement works better than jerky motion
+
+### Processing Optimization
+
+- **Start Small**: Test with short video clips first
+- **GPU Usage**: Enable GPU acceleration when available
+- **Quality Settings**: Use Balanced quality for initial tests
+- **Memory Management**: Monitor RAM usage with large videos
+
+### Scene Considerations
+
+- **Feature-Rich**: Scenes with lots of texture and detail track better
+- **Motion Blur**: Minimize motion blur for better feature detection
+- **Scale**: Include objects of known size for scale reference
+- **Overlap**: Ensure sufficient scene overlap between frames
+
+
+### Quick Fixes
+
+- **Processing Fails**: Check executable paths in preferences
+- **Out of Memory**: Reduce Max Image Size or use lower quality
+- **Poor Tracking**: Adjust camera model or increase Max Features
+- **Slow Processing**: Enable GPU or reduce video resolution
+

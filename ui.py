@@ -1,5 +1,7 @@
 import bpy
 
+from open_video_tracker.properties import OpenVideoTrackerCameraProperties , OpenVideoTrackerPointsProperties
+
 from .operators import OPEN_VIDEO_TRACKER_OT_run_pipeline_modal
 
 class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
@@ -112,3 +114,77 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
             row.label(text="Progesss")
             row = box.row()
             row.progress(text=OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message, factor=open_video_tracker.progress/7)
+
+
+class OPEN_VIDEO_TRACKER_PT_camera_panel(bpy.types.Panel):
+    """Creates a Panel in the 3D Viewport"""
+    bl_label = "Import Options"
+    bl_idname = "OPEN_VIDEO_TRACKER_PT_camera_panel"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_options = {'DEFAULT_CLOSED'}
+    bl_category = "Open Video Tracker"
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        row = layout.row()
+        # row.scale_y = 1.5
+        self.draw_camera_options(row , scene.open_video_tracker.camera_importer)
+        self.draw_point_options(layout , scene.open_video_tracker.point_importer)
+    def draw_camera_options(
+        self,
+        layout,
+        prop:OpenVideoTrackerCameraProperties,
+    ):
+        """Draw camera import options."""
+        camera_box = layout.box()
+        prop = prop
+
+        import_camera_box = camera_box.box()
+        import_camera_box.prop(prop, "import_cameras")
+        if prop.import_cameras:
+            import_camera_box.prop(prop, "camera_extent")
+            import_camera_box.prop(prop, "add_background_images")
+
+            image_plane_box = import_camera_box.box()
+            image_plane_box.prop(prop, "add_image_planes")
+            if prop.add_image_planes:
+                image_plane_box.prop(prop, "add_image_plane_emission")
+                image_plane_box.prop(prop, "image_plane_transparency")
+
+        anim_box = camera_box.box()
+        anim_box.prop(prop, "add_camera_motion_as_animation")
+
+        if prop.add_camera_motion_as_animation:
+            anim_box.row().prop(prop, "animation_frame_source", expand=True)
+            if prop.animation_frame_source == "ORIGINAL":
+                anim_box.prop(prop, "add_animated_camera_background_images")
+            if prop.animation_frame_source == "ADJUSTED":
+                anim_box.prop(prop, "number_interpolation_frames")
+            anim_box.prop(prop, "consider_missing_cameras_during_animation")
+            anim_box.prop(prop, "interpolation_type")
+            anim_box.prop(prop, "remove_rotation_discontinuities")
+
+        camera_box.prop(prop, "suppress_distortion_warnings")
+        camera_box.prop(prop, "adjust_render_settings")
+
+    def draw_point_options(self, layout, prop:OpenVideoTrackerPointsProperties):
+        """Draw point import options."""
+        point_box = layout.box()
+        point_box.prop(prop, "import_points")
+        point_box.prop(prop, "point_cloud_display_sparsity")
+        point_box.prop(prop, "center_points")
+        if prop.import_points:
+            opengl_box = point_box.box()
+            opengl_box.prop(prop, "draw_points_with_gpu")
+            if prop.draw_points_with_gpu:
+                opengl_box.prop(prop, "add_points_to_point_cloud_handle")
+                opengl_box.prop(prop, "point_size")
+            mesh_box = point_box.box()
+            mesh_box.prop(prop, "add_points_as_mesh_oject")
+            if prop.add_points_as_mesh_oject:
+                mesh_box.prop(prop, "add_mesh_to_point_geometry_nodes")
+                mesh_box.prop(prop, "point_radius")
+                mesh_box.prop(prop, "point_subdivisions")
+                mesh_box.prop(prop, "add_color_as_custom_property")

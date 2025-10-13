@@ -1,0 +1,29 @@
+schema_version = "1.0.0"
+
+# Example of manifest file for a Blender extension
+# Change the values according to your extension
+id = "open_video_tracker"
+version = "0.1.0"
+name = "Open Video Tracker"
+tagline = "Open Video Tracker"
+maintainer = "haseebahmed295"
+type = "add-on"
+
+# # Optional: link to documentation, support, source files, etc
+# website = "https://extensions.blender.org/add-ons/my-example-package/"
+
+# # Optional: tag list defined by Blender and server, see:
+# # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
+tags = ["Animation", "3D View", "Tracking"]
+
+blender_version_min = "4.2.0"
+
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+
+platforms = ["windows-x64"]
+
+[permissions]
+files = "For storing data"
+

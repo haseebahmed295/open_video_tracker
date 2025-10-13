@@ -34,7 +34,10 @@ class OpenVideoTrackerPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "colmap_path")
-        layout.prop(self, "glomap_path")
-        layout.prop(self, "ffmpeg_path")
-        layout.prop(self, "ffprobe_path")
+        header , panel = layout.panel("OPEN_VIDEO_TRACKER_PT_Panel" , default_closed=True)
+        header.label(text="External Executables Paths")
+        if panel:
+            panel.prop(self, "colmap_path")
+            panel.prop(self, "glomap_path")
+            panel.prop(self, "ffmpeg_path")
+            panel.prop(self, "ffprobe_path")

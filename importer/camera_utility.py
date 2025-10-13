@@ -500,10 +500,8 @@ def add_cameras(
             image_path = camera.get_absolute_fp()
 
         if not os.path.isfile(image_path):
-            log_warning("Could not find image at " + str(image_path), op)
+            log_debug("Could not find image at " + str(image_path), op)
             continue
-        else:
-            log_info("Found image at " + str(image_path), op)
 
         blender_image = bpy.data.images.load(image_path)
 

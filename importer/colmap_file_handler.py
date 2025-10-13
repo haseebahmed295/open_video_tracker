@@ -81,7 +81,7 @@ def check_radial_distortion(radial_distortion, camera_name, op=None):
     output += "reconstruction using a camera model without radial distortion"
     output += ' parameters.  Use "Suppress Distortion Warnings" in the'
     output += " import settings to suppress this message."
-    log_warning(output, op)
+    log_debug(output, op)
 
 
 
@@ -184,8 +184,8 @@ class ColmapFileHandler:
             ) = ColmapFileHandler._parse_camera_param_list(
                 camera_model,
             )
-            if not suppress_distortion_warnings:
-                check_radial_distortion(r, current_camera._relative_fp, op)
+
+            check_radial_distortion(r, current_camera._relative_fp, op)
 
             camera_calibration_matrix = np.array(
                 [[fx, skew, cx], [0, fy, cy], [0, 0, 1]]

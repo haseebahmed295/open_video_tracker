@@ -1,4 +1,5 @@
 import os
+import logging
 
 import bpy
 from bpy.props import StringProperty , BoolProperty, IntProperty, FloatProperty, EnumProperty, FloatVectorProperty
@@ -14,7 +15,7 @@ from .point_importer import PointImporter
 from .mesh_importer import MeshImporter
 from .general_options import GeneralOptions
 from .colmap_file_handler import ColmapFileHandler
-from .logger import log_info, log_warning, log_error, log_debug
+from .logger import log_info, log_warning, log_error, log_debug, logger
 
 class ImportOperator(bpy.types.Operator):
     """Abstract basic import operator."""
@@ -292,7 +293,7 @@ class CameraImporter:
         "of cameras and points. Enable this option to suppress "
         "corresponding warnings. If possible, consider to re-compute the "
         "reconstruction using a camera model without radial distortion",
-        default=False,
+        default=True,
     )
 
     adjust_render_settings: BoolProperty(
@@ -509,6 +510,22 @@ class ImportColmapOperator(
 
     def execute(self, context):
         """Import a :code:`Colmap` model/workspace."""
+        # Get the suppress_distortion_warnings value from scene properties
+        suppress_warnings = context.scene.open_video_tracker.camera_importer.suppress_distortion_warnings
+
+        # Set console handler level based on suppress_distortion_warnings
+        # When True, only show warnings and errors; when False, show info and above
+        console_handler = None
+        for handler in logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                console_handler = handler
+                break
+        if console_handler:
+            if suppress_warnings:
+                console_handler.setLevel(logging.WARNING)
+            else:
+                console_handler.setLevel(logging.INFO)
+
         path = self.directory
         # Remove trailing slash
         path = os.path.dirname(path)

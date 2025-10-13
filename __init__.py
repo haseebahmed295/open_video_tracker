@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Open Video Tracker",
     "description": "Blender addon for video tracking using COLMAP and GLOMAP",
-    "author": "Open Video Tracker Team",
+    "author": "haseebahmed295",
     "version": (0, 1, 0),
     "blender": (2, 93, 0),
     "location": "3D View > Open Video Tracker",
@@ -21,6 +21,8 @@ classes = (
     preferences.OpenVideoTrackerPreferences,
     
     # Properties
+    properties.OpenVideoTrackerCameraProperties,
+    properties.OpenVideoTrackerPointsProperties,
     properties.OpenVideoTrackerProperties,
     
     # Operators
@@ -29,6 +31,7 @@ classes = (
     
     # UI Panels
     ui.OPEN_VIDEO_TRACKER_PT_panel,
+    ui.OPEN_VIDEO_TRACKER_PT_camera_panel
 )
 
 def register():

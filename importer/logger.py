@@ -1,5 +1,6 @@
 import logging
 import bpy
+import os
 
 # Create a custom logger
 logger = logging.getLogger(__name__)
@@ -7,7 +8,7 @@ logger.setLevel(logging.DEBUG)
 
 # Create handlers
 console_handler = logging.StreamHandler()
-file_handler = logging.FileHandler('open_video_tracker_importer.log')
+file_handler = logging.FileHandler(os.path.expanduser('~/open_video_tracker_importer.log'))
 
 # Set levels for handlers
 console_handler.setLevel(logging.INFO)

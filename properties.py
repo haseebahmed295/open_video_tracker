@@ -2,6 +2,9 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, IntProperty, FloatProperty, EnumProperty
 import os
 
+from .importer.importer import CameraImporter
+from .importer.point_importer import PointImporter
+
 
 def update_video_path(self, context):
     """Update function called when video_path property changes"""
@@ -42,8 +45,19 @@ def register():
 
 def unregister():
     del bpy.types.Scene.open_video_tracker
+    
+
+
+class OpenVideoTrackerCameraProperties(bpy.types.PropertyGroup ,CameraImporter):
+    pass
+
+class OpenVideoTrackerPointsProperties(bpy.types.PropertyGroup ,PointImporter):
+    pass
 
 class OpenVideoTrackerProperties(bpy.types.PropertyGroup):
+
+    camera_importer: bpy.props.PointerProperty(type=OpenVideoTrackerCameraProperties)
+    point_importer: bpy.props.PointerProperty(type=OpenVideoTrackerPointsProperties)
     # Video file path
     video_path: StringProperty(
         name="Video Path",
