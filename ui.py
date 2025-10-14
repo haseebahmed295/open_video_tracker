@@ -1,6 +1,6 @@
 import bpy
 
-from open_video_tracker.properties import OpenVideoTrackerCameraProperties , OpenVideoTrackerPointsProperties
+from .properties import OpenVideoTrackerCameraProperties , OpenVideoTrackerPointsProperties
 
 from .operators import OPEN_VIDEO_TRACKER_OT_run_pipeline_modal
 

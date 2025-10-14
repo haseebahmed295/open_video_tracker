@@ -3,9 +3,7 @@
 ## Table of Contents
 
 - [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Initial Setup](#initial-setup)
 - [User Interface Overview](#user-interface-overview)
 - [Workflow](#workflow)
 - [Configuration Options](#configuration-options)
@@ -13,7 +11,6 @@
 - [Importing Results](#importing-results)
 - [Post-Processing](#post-processing)
 - [Best Practices](#best-practices)
-- [Troubleshooting](#troubleshooting)
 
 ## Introduction
 

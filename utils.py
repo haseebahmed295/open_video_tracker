@@ -5,6 +5,8 @@ import json
 
 from numpy import add
 
+from .properties import OpenVideoTrackerCameraProperties , OpenVideoTrackerPointsProperties
+
 def get_addon_preferences():
     """Get the addon preferences"""
     preferences = bpy.context.preferences
@@ -137,3 +139,35 @@ def get_video_info(video_path):
         return None, "Failed to parse ffprobe output"
     except Exception as e:
         return None, f"Error getting video info: {str(e)}"
+
+def import_colmap_data(context , model_dir , image_dir):
+    camera_prop:OpenVideoTrackerCameraProperties = context.scene.open_video_tracker.camera_importer
+    point_prop:OpenVideoTrackerPointsProperties = context.scene.open_video_tracker.point_importer
+    bpy.ops.import_scene.open_video_tracker_colmap(directory=model_dir,
+    import_cameras=camera_prop.import_cameras,
+    camera_extent=camera_prop.camera_extent,
+    add_background_images=camera_prop.add_background_images,
+    add_image_planes=camera_prop.add_image_planes,
+    add_image_plane_emission=camera_prop.add_image_plane_emission,
+    image_plane_transparency=camera_prop.image_plane_transparency,
+    add_camera_motion_as_animation=camera_prop.add_camera_motion_as_animation,
+    animation_frame_source=camera_prop.animation_frame_source, 
+    add_animated_camera_background_images=camera_prop.add_animated_camera_background_images,
+    number_interpolation_frames=camera_prop.number_interpolation_frames,
+    consider_missing_cameras_during_animation=camera_prop.consider_missing_cameras_during_animation,
+    interpolation_type=camera_prop.interpolation_type,
+    remove_rotation_discontinuities=camera_prop.remove_rotation_discontinuities,
+    adjust_render_settings=camera_prop.adjust_render_settings,
+    image_dp = image_dir,
+    import_points=point_prop.import_points,
+    point_cloud_display_sparsity=point_prop.point_cloud_display_sparsity,
+    center_points=point_prop.center_points,
+    draw_points_with_gpu=point_prop.draw_points_with_gpu,
+    add_points_to_point_cloud_handle=point_prop.add_points_to_point_cloud_handle,
+    point_size=point_prop.point_size,
+    add_points_as_mesh_oject=point_prop.add_points_as_mesh_oject,
+    add_mesh_to_point_geometry_nodes=point_prop.add_mesh_to_point_geometry_nodes,
+    point_radius=point_prop.point_radius,
+    point_subdivisions=point_prop.point_subdivisions,
+    add_color_as_custom_property=point_prop.add_color_as_custom_property
+                                                                   )
