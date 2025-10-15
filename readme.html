@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OVT User Guide</title>
+<style>
+/* ---- Scoped iframe-safe styles ---- */
+.ovtFrame {
+  font-family: "Segoe UI", sans-serif;
+  background: #f8f9fb;
+  color: #1e293b;
+  padding: 1rem;
+  box-sizing: border-box;
+  line-height: 1.6;
+  max-width: 100%;
+}
+
+/* Title block */
+.ovtHead {
+  text-align: center;
+  background: #0f3460;
+  color: #fff;
+  padding: 1rem;
+  border-radius: 10px;
+}
+.ovtHead h1 { margin: 0; font-size: 1.5rem; }
+
+/* Section container */
+.ovtSec {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+/* Section titles */
+.ovtSec h2 {
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: .4rem;
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+/* Paragraphs & lists */
+.ovtSec p { margin: .7rem 0; }
+.ovtSec ul, .ovtSec ol { margin-left: 1.3rem; }
+.ovtSec li { margin: .3rem 0; }
+
+/* Collapsible details */
+.ovtFold {
+  background: #f9fafb;
+  border-radius: 8px;
+  margin: .8rem 0;
+  padding: .6rem .8rem;
+}
+.ovtFold summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #2563eb;
+}
+.ovtFold summary:hover { text-decoration: underline; }
+
+/* Table styling */
+.ovtTab {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: .8rem;
+  font-size: 0.9rem;
+}
+.ovtTab th, .ovtTab td {
+  border: 1px solid #d1d5db;
+  padding: .5rem .6rem;
+  text-align: left;
+}
+.ovtTab th {
+  background: #f3f4f6;
+}
+
+/* Code block */
+.ovtCode {
+  background: #f1f5f9;
+  padding: .8rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 0.85rem;
+  margin-top: .8rem;
+}
+
+/* Responsive scaling */
+@media (max-width: 600px) {
+  .ovtSec { padding: 1rem; }
+  .ovtHead h1 { font-size: 1.2rem; }
+}
+</style>
+</head>
+
+<body class="ovtFrame">
+  <div class="ovtHead">
+    <h1>Open Video Tracker – User Guide</h1>
+  </div>
+
+  <section class="ovtSec">
+    <h2>Introduction</h2>
+    <p><b>Open Video Tracker</b> integrates <b>FFmpeg</b>, <b>COLMAP</b>, and <b>GLOMAP</b> to automate 3D camera tracking and point-cloud reconstruction from videos directly inside Blender.</p>
+  </section>
+
+  <section class="ovtSec">
+    <h2>Installation</h2>
+    <details class="ovtFold" open>
+      <summary>Step 1: Download</summary>
+      <ul>
+        <li>Clone or download the repository</li>
+        <li>Locate the <code>open_video_tracker</code> folder</li>
+      </ul>
+    </details>
+    <details class="ovtFold">
+      <summary>Step 2: Install in Blender</summary>
+      <ol>
+        <li>Go to <b>Edit → Preferences → Add-ons</b></li>
+        <li>Click <b>Install...</b> and select the folder</li>
+      </ol>
+    </details>
+    <details class="ovtFold">
+      <summary>Step 3: Enable the Addon</summary>
+      <p>Enable “Open Video Tracker” in the Add-ons list. It will appear in the 3D Viewport sidebar.</p>
+    </details>
+  </section>
+
+  <section class="ovtSec">
+    <h2>User Interface</h2>
+    <ul>
+      <li><b>Video Path:</b> choose your input video</li>
+      <li><b>Feature Extraction:</b> adjust resolution, GPU, and model</li>
+      <li><b>Execution:</b> click <b>Track Video</b> to run the pipeline</li>
+    </ul>
+  </section>
+
+  <section class="ovtSec">
+    <h2>Workflow</h2>
+    <ol>
+      <li>Prepare your footage (steady and well-lit)</li>
+      <li>Configure quality and GPU options</li>
+      <li>Click <b>Track Video</b></li>
+      <li>Import the reconstruction into Blender</li>
+    </ol>
+  </section>
+
+  <section class="ovtSec">
+    <h2>Configuration</h2>
+    <table class="ovtTab">
+      <tr><th>Mode</th><th>QScale</th><th>Usage</th></tr>
+      <tr><td>Native</td><td>1</td><td>Archival quality</td></tr>
+      <tr><td>High</td><td>2</td><td>Production</td></tr>
+      <tr><td>Balanced</td><td>4</td><td>Default</td></tr>
+      <tr><td>Low</td><td>8</td><td>Fast preview</td></tr>
+      <tr><td>Lowest</td><td>16</td><td>Quick test</td></tr>
+    </table>
+  </section>
+
+  <section class="ovtSec">
+    <h2>Pipeline</h2>
+    <ul>
+      <li>Extract frames → FFmpeg</li>
+      <li>Feature matching → COLMAP</li>
+      <li>Reconstruction → GLOMAP</li>
+      <li>Import to Blender</li>
+    </ul>
+    <pre class="ovtCode">{your_blend_file}/video_tracking/{video_name}/
+├── images/
+├── sparse/
+│   ├── 0/
+│   ├── cameras.txt
+│   ├── images.txt
+│   └── points3D.txt
+└── database.db</pre>
+  </section>
+
+  <section class="ovtSec">
+    <h2>Importing & Post-Processing</h2>
+    <ul>
+      <li>Use <b>File → Import → COLMAP Model</b> for manual import</li>
+      <li>Refine the camera animation</li>
+      <li>Mesh and clean up point clouds</li>
+      <li>Integrate into your Blender scene</li>
+    </ul>
+  </section>
+
+  <section class="ovtSec">
+    <h2>Best Practices</h2>
+    <ul>
+      <li>Use short clips for testing</li>
+      <li>Enable GPU acceleration</li>
+      <li>Ensure good lighting</li>
+      <li>Keep video stable for best reconstruction</li>
+    </ul>
+  </section>
+</body>
+</html>
