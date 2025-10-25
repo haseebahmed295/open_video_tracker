@@ -1,14 +1,19 @@
 import os
 import bpy
 from bpy.props import StringProperty, PointerProperty
-
+from .utils import validate_cuda_version
+def get_colmap_path():
+    if validate_cuda_version():
+        return os.path.join(os.path.dirname(__file__), "colmap","bin","colmap.exe")
+    else:   
+        return os.path.join(os.path.dirname(__file__), "colmap-nocuda","bin","colmap.exe")
 class OpenVideoTrackerPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     colmap_path: StringProperty(
         name="COLMAP Path",
         description="Path to COLMAP executable",
-        default=os.path.join(os.path.dirname(__file__), "colmap","bin","colmap.exe"),
+        default=get_colmap_path(),
         subtype='FILE_PATH'
     )
     
@@ -34,6 +39,7 @@ class OpenVideoTrackerPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+        layout.label(text=f"Version: {'No CUDA' if not validate_cuda_version() else 'CUDA'}")
         header , panel = layout.panel("OPEN_VIDEO_TRACKER_PT_Panel" , default_closed=True)
         header.label(text="External Executables Paths")
         if panel:

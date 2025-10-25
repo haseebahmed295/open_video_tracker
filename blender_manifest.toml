@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "open_video_tracker"
-version = "0.1.0"
+version = "0.1.1"
 name = "Open Video Tracker"
 tagline = "Open Video Tracker"
 maintainer = "haseebahmed295"

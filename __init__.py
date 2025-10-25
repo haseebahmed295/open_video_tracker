@@ -2,7 +2,7 @@ bl_info = {
     "name": "Open Video Tracker",
     "description": "Blender addon for video tracking using COLMAP and GLOMAP",
     "author": "haseebahmed295",
-    "version": (0, 1, 0),
+    "version": (0, 1, 1),
     "blender": (2, 93, 0),
     "location": "3D View > Open Video Tracker",
     "warning": "This addon is still in development.",

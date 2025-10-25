@@ -1,4 +1,5 @@
 import os
+import re
 import bpy
 import subprocess
 import json
@@ -171,3 +172,9 @@ def import_colmap_data(context , model_dir , image_dir):
     point_subdivisions=point_prop.point_subdivisions,
     add_color_as_custom_property=point_prop.add_color_as_custom_property
                                                                    )
+    
+def validate_cuda_version():
+    """Check if addon is running with CUDA support"""
+    if os.path.exists(os.path.join(os.path.dirname(__file__), "colmap")):
+        return True
+    return False

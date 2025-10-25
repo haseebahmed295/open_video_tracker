@@ -113,7 +113,7 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
         else:
             row.label(text="Progesss")
             row = box.row()
-            row.progress(text=OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message, factor=open_video_tracker.progress/7)
+            row.progress(text=OPEN_VIDEO_TRACKER_OT_run_pipeline_modal._message, factor=open_video_tracker.progress/6)
 
 
 class OPEN_VIDEO_TRACKER_PT_camera_panel(bpy.types.Panel):
