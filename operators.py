@@ -4,6 +4,7 @@ import bpy
 import os
 import subprocess
 from .properties import OpenVideoTrackerProperties
+from .preferences import OpenVideoTrackerPreferences
 from .utils import (
     get_addon_preferences, 
     create_working_directory, 
@@ -84,7 +85,7 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
     def processs(self, context):
         """Execute the next step in the pipeline"""
         props:OpenVideoTrackerProperties = context.scene.open_video_tracker
-        prefs = get_addon_preferences()
+        prefs:OpenVideoTrackerPreferences = get_addon_preferences()
         
         # Validate inputs
         is_valid, msg = validate_video_path(props.video_path)
@@ -157,7 +158,8 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
                 "--ImageReader.single_camera", "1",
                 "--ImageReader.camera_model", props.camera_model,
                 "--SiftExtraction.max_image_size", str(props.max_image_size),
-                "--SiftExtraction.max_num_features", str(props.max_num_features)
+                "--SiftExtraction.max_num_features", str(props.max_num_features),
+                "--SiftExtraction.use_gpu", "1" if prefs.use_gpu_features else "0"
             ]
             self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             self.print_logs(self._process)
@@ -176,14 +178,14 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
                 prefs.colmap_path,
                 "sequential_matcher",
                 "--database_path", database_path,
-                "--SequentialMatching.overlap", str(props.overlap)
+                "--SequentialMatching.overlap", str(props.overlap),
+                "--SiftMatching.use_gpu", "1" if prefs.use_gpu_matching else "0"
             ]
             self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             self.print_logs(self._process)
             if self._process.returncode != 0:
-                self.report({'ERROR'}, "Feature matching failed")
-                return  # Early exit from the thread function
-        
+                self.report({'ERROR'}, "Feature matching failed. Retry without GPU.")
+                return
             # Step 4: GLOMAP sparse reconstruction
             self.report({'INFO'}, "Step 4/6: Running sparse reconstruction...")
             self.update_current_step(4)
@@ -200,8 +202,8 @@ class OPEN_VIDEO_TRACKER_OT_run_pipeline_modal(bpy.types.Operator):
                 "--RelPoseEstimation.max_epipolar_error", str(props.max_epipolar_error),
                 "--GlobalPositioning.max_num_iterations", str(props.max_global_positioning_iterations),
                 "--BundleAdjustment.max_num_iterations", str(props.max_bundle_adjustment_iterations),
-                "--GlobalPositioning.use_gpu", "1" if props.use_gpu else "0",
-                "--BundleAdjustment.use_gpu", "1" if props.use_gpu else "0"
+                "--GlobalPositioning.use_gpu", "1" if prefs.use_gpu_reconstruction else "0",
+                "--BundleAdjustment.use_gpu", "1" if prefs.use_gpu_reconstruction else "0"
             ]
             self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
             self.print_logs(self._process)

@@ -64,11 +64,9 @@ class OPEN_VIDEO_TRACKER_PT_panel(bpy.types.Panel):
         col1 = row.column(align=True)
         col2 = row.column(align=True)
         col1.label(text="Max Image Size")
-        col1.label(text="Use GPU")
         col1.label(text="Camera Model")
         col1.label(text="Max Num Features")    
         col2.prop(open_video_tracker, "max_image_size" , text="")
-        col2.prop(open_video_tracker, "use_gpu", text="")
         col2.prop(open_video_tracker, "camera_model", text="")
         col2.prop(open_video_tracker, "max_num_features", text="")
         

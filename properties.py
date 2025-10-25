@@ -90,12 +90,6 @@ class OpenVideoTrackerProperties(bpy.types.PropertyGroup):
         min=100
     )
 
-    use_gpu: BoolProperty(
-        name="Use GPU",
-        description="Use GPU for feature extraction",
-        default=True
-    )
-
     camera_model: EnumProperty(
         name="Camera Model",
         description="Camera model for feature extraction",

@@ -36,10 +36,38 @@ class OpenVideoTrackerPreferences(bpy.types.AddonPreferences):
         default=os.path.join(os.path.dirname(__file__), "ffmpeg","bin","ffprobe.exe"),
         subtype='FILE_PATH'
     )
+    use_gpu_features: bpy.props.BoolProperty(
+        name="Use GPU in Feature Extraction",
+        description="""Enable GPU acceleration for feature extraction
+It is recommended to not diable this unless you face issues during feature extraction
+Disabling this will cause usage of huge amounts of RAM""",
+        default=True
+    )
+    use_gpu_matching: bpy.props.BoolProperty(
+        name="Use GPU in Feature Matching",
+        description="""Enable GPU acceleration for feature matching
+Disable if pipelines crash during matching or show 'not enough gpu memory for matching' error""",
+        default=validate_cuda_version()
+    )
+    use_gpu_reconstruction: bpy.props.BoolProperty(
+        name="Use GPU in Sparse Reconstruction",
+        description="""Enable GPU acceleration for sparse reconstruction
+Disable if pipelines crash during reconstruction \n Not very importent unless you know what you are doing""",
+        default=True
+    )
 
     def draw(self, context):
         layout = self.layout
         layout.label(text=f"Version: {'No CUDA' if not validate_cuda_version() else 'CUDA'}")
+        row = layout.row()
+        col = row.column(align=True)
+        col.label(text="Use GPU In:")
+        col.prop(self, "use_gpu_features", text="Feature Extraction" , toggle=True)
+        col.prop(self, "use_gpu_matching", text="Feature Matching" , toggle=True)
+        col.prop(self, "use_gpu_reconstruction", text="Sparse Reconstruction" , toggle=True)
+        col = row.column(align=True)
+        col.label(text="")
+        
         header , panel = layout.panel("OPEN_VIDEO_TRACKER_PT_Panel" , default_closed=True)
         header.label(text="External Executables Paths")
         if panel:
