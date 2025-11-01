@@ -33,6 +33,8 @@ Open Video Tracker is a Blender addon that automates the process of converting v
 <img width="327" height="248" alt="image" src="https://github.com/user-attachments/assets/d0e255e8-78a2-4200-9923-40a81477dc4d" />
 <img width="328" height="598" alt="image" src="https://github.com/user-attachments/assets/3196dbee-f266-4e1c-a3a8-cf8a03101599" />
 
+# Imported Data Preview
+<img width="1891" height="891" alt="image" src="https://github.com/user-attachments/assets/33b5eb3f-fa86-4098-8413-1b2d1091e2f8" />
 
 
 
