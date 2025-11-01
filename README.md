@@ -219,3 +219,16 @@ The addon uses same dir as th blend file and creates following directory structu
 - **Poor Tracking**: Adjust camera model or increase Max Features
 - **Slow Processing**: Enable GPU or reduce video resolution
 
+
+Credits
+
+    Blender — 3D creation suite (blender.org)
+    FFmpeg — Video processing toolkit (ffmpeg.org)
+    COLMAP — Structure-from-Motion and MVS (colmap.github.io)
+    GLOMAP — Global incremental SfM (github.com/colmap/glomap)
+    Blender Photogrammetry Importer (github.com/SBCV/Blender-Addon-Photogrammetry-Importer)
+    Thanks to the open‑source community and contributors
+
+Logos and trademarks are the property of their respective owners.
+
+
