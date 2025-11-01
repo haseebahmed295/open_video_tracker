@@ -30,8 +30,9 @@ Open Video Tracker is a Blender addon that automates the process of converting v
 3. If visible, the installation was successful
 
 ## User Interface Pverview
-<img width="347" height=full alt="image" src="https://github.com/user-attachments/assets/a7db1b90-81ba-40e9-8587-4d5447118430" />
-<img width="350" height=full alt="image" src="https://github.com/user-attachments/assets/4728c200-9fb3-4f4e-a07a-f0dc420cbd2d" />
+<img width="327" height="248" alt="image" src="https://github.com/user-attachments/assets/d0e255e8-78a2-4200-9923-40a81477dc4d" />
+<img width="328" height="598" alt="image" src="https://github.com/user-attachments/assets/3196dbee-f266-4e1c-a3a8-cf8a03101599" />
+
 
 
 
